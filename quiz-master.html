@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Block Blast Adventure Quiz</title>
+  <style>
+    body {
+      background-color: #87CEFA; /* light blue */
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+
+    /* Creative main menu title */
+    .game-title {
+      font-size: 60px;
+      font-weight: bold;
+      background: linear-gradient(90deg, #FF4500, #FFD700, #32CD32, #1E90FF, #9400D3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 3px 3px 8px rgba(0,0,0,0.6);
+      margin-bottom: 50px;
+      display: inline-block;
+      position: relative;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .crown {
+      font-size: 50px;
+      vertical-align: middle;
+      margin-right: 10px;
+      text-shadow: 2px 2px 5px gold, 0 0 10px gold;
+      animation: rotate 3s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes rotate {
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(10deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    .theme-button {
+      background: linear-gradient(90deg, #FF7F50, #FF1493);
+      color: white;
+      border: 3px solid white;
+      padding: 20px;
+      width: 300px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      display: block;
+      margin: 20px auto;
+      border-radius: 10px;
+      transition: all 0.3s;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+    }
+
+    .theme-button:hover {
+      background: linear-gradient(90deg, #FF1493, #FF7F50);
+      transform: scale(1.1);
+    }
+
+    #quiz-container {
+      max-width: 700px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+      display: none;
+    }
+
+    h2 {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .level {
+      font-size: 20px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .timer {
+      font-size: 22px;
+      color: #FF4500;
+      margin-bottom: 20px;
+    }
+
+    .score {
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+
+    .answer-btn {
+      background: linear-gradient(90deg, #FF7F50, #FF1493);
+      color: white;
+      border: 3px solid white;
+      padding: 15px;
+      width: 100%;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px 0;
+      border-radius: 10px;
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+      transition: all 0.3s;
+    }
+
+    .answer-btn:hover {
+      background: linear-gradient(90deg, #FF1493, #FF7F50);
+      transform: scale(1.05);
+    }
+
+    #result-container {
+      display: none;
+      background-color: #fff;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+  </style>
+
+  <!-- Confetti library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- Confetti canvas -->
+  <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></canvas>
+
+  <!-- Main menu -->
+  <div id="theme-menu">
+    <h1 class="game-title"><span class="crown">👑</span> QUIZ MASTER</h1>
+    <button class="theme-button" id="historyBtn">History</button>
+    <button class="theme-button" id="scienceBtn">Science & Geography</button>
+  </div>
+
+  <!-- Quiz container -->
+  <div id="quiz-container">
+    <div class="level" id="levelText"></div>
+    <div class="timer" id="timer">Time: 0</div>
+    <div class="score" id="scoreText">Score: 0</div>
+    <h2 id="questionText"></h2>
+    <div id="answers">
+      <button class="answer-btn" id="answer0"></button>
+      <button class="answer-btn" id="answer1"></button>
+      <button class="answer-btn" id="answer2"></button>
+      <button class="answer-btn" id="answer3"></button>
+    </div>
+  </div>
+
+  <!-- Result container -->
+  <div id="result-container">
+    <h2>Your Quiz Completed!</h2>
+    <p id="finalScore"></p>
+    <button class="theme-button" id="backMenu">Back to Main Menu</button>
+  </div>
+
+  <!-- Sounds -->
+  <audio id="clickSound" src="https://www.myinstants.com/media/sounds/mouse-click.mp3"></audio>
+  <audio id="celebrateSound" src="https://www.soundjay.com/human/cheer-01.mp3"></audio>
+
+  <script>
+    const clickSound = document.getElementById('clickSound');
+    const celebrateSound = document.getElementById('celebrateSound');
+    const confettiCanvas = document.getElementById('confetti-canvas');
+
+    function playClick() {
+      clickSound.currentTime = 0;
+      clickSound.play().catch(e=>console.log(e));
+    }
+
+    function playCelebrate() {
+      celebrateSound.currentTime = 0;
+      celebrateSound.play().catch(e=>console.log(e));
+    }
+
+    const historyBtn = document.getElementById('historyBtn');
+    const scienceBtn = document.getElementById('scienceBtn');
+    const themeMenu = document.getElementById('theme-menu');
+
+    const quizContainer = document.getElementById('quiz-container');
+    const questionText = document.getElementById('questionText');
+    const answerBtns = [
+      document.getElementById('answer0'),
+      document.getElementById('answer1'),
+      document.getElementById('answer2'),
+      document.getElementById('answer3')
+    ];
+    const levelText = document.getElementById('levelText');
+    const timerText = document.getElementById('timer');
+    const scoreText = document.getElementById('scoreText');
+
+    const resultContainer = document.getElementById('result-container');
+    const finalScore = document.getElementById('finalScore');
+    const backMenu = document.getElementById('backMenu');
+
+    let timer;
+    let timeLeft;
+    let currentTheme, currentLevel, currentQuestionIndex, score;
+    const levelTime = { easy: 20, medium: 30, hard: 20 };
+
+    const quizData = {
+      history: {
+        easy: [
+          { q: "Who was the first president of the Philippines?", a: ["Emilio Aguinaldo","Jose Rizal","Manuel Quezon","Ferdinand Marcos"], correct: 0 },
+          { q: "Philippines colonized first by?", a: ["Spain","USA","Japan","Portugal"], correct: 0 },
+          { q: "Independence from Spain year?", a: ["1898","1946","1565","1910"], correct: 0 },
+          { q: "National anthem writer?", a: ["Julian Felipe","Jose Rizal","Andres Bonifacio","Apolinario Mabini"], correct: 0 },
+          { q: "EDSA Revolution year?", a: ["1986","1972","1990","1983"], correct: 0 }
+ 
+
+        ],
+        medium: [], hard: []
+      },
+      science: {
+        easy: [
+          { q: "What is the largest planet in our solar system?", a: ["Jupiter", "Saturn", "Mars", "Earth"], correct: 0 },
+          { q: "Which layer of Earth's atmosphere contains the ozone layer?", a: ["Stratosphere", "Troposphere", "Mesosphere", "Thermosphere"], correct: 0 },
+          { q: "What is the chemical symbol for gold?", a: ["Au", "Ag", "Cu", "Fe"], correct: 0 },
+          { q: "Which is the longest river in the world?", a: ["Nile", "Amazon", "Yangtze", "Mississippi"], correct: 0 },
+          { q: "What type of rock is formed from cooled magma or lava?", a: ["Igneous", "Sedimentary", "Metamorphic", "Carbonate"], correct: 0 },
+        ],
+        medium: [], hard: []
+      }
+    };
+
+    function startQuiz(theme) {
+      playClick();
+      currentTheme = theme;
+      currentLevel = "easy";
+      currentQuestionIndex = 0;
+      score = 0;
+      themeMenu.style.display = "none";
+      quizContainer.style.display = "block";
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const questions = quizData[currentTheme][currentLevel];
+      if(currentQuestionIndex >= questions.length) { nextLevelOrEnd(); return; }
+
+      const q = questions[currentQuestionIndex];
+      questionText.textContent = q.q;
+      answerBtns.forEach((btn, i) => {
+        btn.textContent = q.a[i];
+        btn.onclick = () => handleAnswer(i);
+      });
+
+      levelText.textContent = "Level: " + currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1);
+      scoreText.textContent = "Score: " + score;
+
+      timeLeft = levelTime[currentLevel];
+      timerText.textContent = "Time: " + timeLeft;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        timeLeft--;
+        timerText.textContent = "Time: " + timeLeft;
+        if(timeLeft <= 0) {
+          clearInterval(timer);
+          currentQuestionIndex++;
+          showQuestion();
+        }
+      }, 1000);
+    }
+
+    async function handleAnswer(selected) {
+      clearInterval(timer);
+      playClick();
+
+      const correct = quizData[currentTheme][currentLevel][currentQuestionIndex].correct;
+
+      if(selected === correct) {
+        score++;
+
+        // Confetti + sound in sync
+        playCelebrate(); // directly triggered by click
+        const myConfetti = confetti.create(confettiCanvas, { resize: true, useWorker: true });
+        myConfetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#FF0A54','#FF477E','#FF7096','#FF85A1','#FBB1B1','#F9BEC7']
+        });
+      }
+
+      currentQuestionIndex++;
+      showQuestion();
+    }
+
+    function nextLevelOrEnd() {
+      if(currentLevel === "easy") currentLevel = "medium";
+      else if(currentLevel === "medium") currentLevel = "hard";
+      else { endQuiz(); return; }
+      currentQuestionIndex = 0;
+      showQuestion();
+    }
+
+    function endQuiz() {
+      quizContainer.style.display = "none";
+      resultContainer.style.display = "block";
+      finalScore.textContent = "Your final score is: " + score + " points";
+    }
+
+    backMenu.addEventListener('click', () => {
+      resultContainer.style.display = "none";
+      themeMenu.style.display = "block";
+    });
+
+    historyBtn.addEventListener('click', () => startQuiz('history'));
+    scienceBtn.addEventListener('click', () => startQuiz('science'));
+  </script>
+
+</body>
+</html>
